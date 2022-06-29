@@ -1,9 +1,11 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import path from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  publicDir: "assets",
 
   // prevent vite from obscuring rust errors
   clearScreen: false,
@@ -23,6 +25,11 @@ export default defineConfig({
     minify: !process.env.TAURI_DEBUG && 'esbuild',
     // produce sourcemaps for debug builds
     sourcemap: !!process.env.TAURI_DEBUG,
+  },
+  resolve: {
+     alias: {
+       '@': path.resolve(__dirname, './src'),
+     },
   },
 })
 

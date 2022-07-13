@@ -181,6 +181,7 @@ pub async fn networth_history(
     maxdate: DateTime<Utc>,
     currency: CommodityId,
 ) -> Vec<NWPoint> {
+    println!("MANU networth_history");
     let group_by: GroupBy = GroupBy::MONTHS;
     let include_scheduled: bool = false;
     let prior: u8 = 0;
@@ -232,7 +233,10 @@ pub async fn networth_history(
         Err(_) => return vec![],
     };
 
-    query_networth_history(&adjusted, currency, scenario, &occurrences, prior, after)
+    let result = query_networth_history(
+        &adjusted, currency, scenario, &occurrences, prior, after);
+    println!("MANU done networth_history");
+    result
 }
 
 /// For each date, compute the current price and number of shares for each

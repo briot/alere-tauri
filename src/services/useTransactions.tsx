@@ -2,21 +2,10 @@ import * as React from 'react';
 import useAccounts, { Account } from '@/services/useAccounts';
 import { DateRange, toDates } from '@/Dates';
 import { Transaction, incomeExpenseSplits } from '@/Transaction';
-import { invoke } from '@tauri-apps/api'
+import useInvoke from '@/services/useInvoke';
 
-const invokeLedger = (
-   range: DateRange | undefined,
-   accounts: Account[],
-   include_scheduled: boolean | undefined,
-): Promise<Transaction[]> => {
-   const r = toDates(range ?? "all");
-   return invoke('ledger', {
-      mindate: r[0],
-      maxdate: r[1],
-      accountids: accounts.map(a => a.id),
-      occurrences: include_scheduled ? 1 : 0,
-   });
-}
+
+const noTransactions: Transaction[] = [];
 
 /**
  * Fetch a ledger from the server
@@ -29,27 +18,42 @@ const useTransactions = (
    includeScheduled?: boolean,
 ): Transaction[] => {
    const { accounts } = useAccounts();
-   const discardIE = accountList.length > 1;
-   const [data, setData] = React.useState<Transaction[]>([]);
-
-   React.useEffect(
+   const discard_internal = accountList.length > 1;
+   const args = React.useMemo(
       () => {
-          invokeLedger(range, accountList, includeScheduled)
-             .then(resp => {
-                resp.forEach(t =>
-                   t.splits.forEach(s =>
-                      s.account = accounts.getAccount(s.account_id)
-                   )
-                );
-              if (discardIE) {
-                 // remove internal transfers
-                 resp = resp.filter(t => incomeExpenseSplits(t).length > 0);
-              }
-                setData(resp);
-             });
+         const r = toDates(range ?? "all");
+         return {
+            mindate: r[0],
+            maxdate: r[1],
+            accountids: accountList.map(a => a.id),
+            occurrences: includeScheduled ? 1 : 0,
+         };
       },
-      [range, accountList, accounts, discardIE, includeScheduled]
+      [accountList, range, includeScheduled]
    );
+
+   const parse = React.useCallback(
+      (raw: Transaction[]) => {
+         raw.forEach(t =>
+            t.splits.forEach(s =>
+               s.account = accounts.getAccount(s.account_id)
+            )
+         );
+         if (discard_internal) {
+            raw = raw.filter(t => incomeExpenseSplits(t).length > 0);
+         }
+         return raw;
+      },
+      [accounts, discard_internal]
+   );
+
+   const { data } = useInvoke({
+      getCommand: 'ledger',
+      args,
+      placeholder: noTransactions,
+      parse,
+   });
+
    return data;
 }
 

@@ -7,7 +7,7 @@ import { ComposedChart, XAxis, YAxis, CartesianGrid, Bar,
 import { CommodityId } from '@/services/useAccounts';
 import Numeric from '@/Numeric';
 import usePrefs from '@/services/usePrefs';
-import { invoke } from '@tauri-apps/api'
+import useInvoke from '@/services/useInvoke';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { Option } from '@/Form';
 import './NetworthHistory.scss';
@@ -30,48 +30,36 @@ interface Point {
    parsedDate: Date;
 }
 const noPoint: Point = {date: "", networth: NaN, parsedDate: new Date()};
-
+const noPoints: Point[] = [];
 const bisectDate = d3Array.bisector((p: Point) => p.parsedDate);
 
-const invokeNWHistory = (
+const parse = (raw: PointJSON[] | undefined): Point[] =>
+   raw
+   ? raw.map(d => ({
+         date: d.date,
+         networth: d.value,
+         parsedDate: new Date(d.date),
+   }))
+   : noPoints;
+
+const useNetworthHistory = (
    range: DateRange,
    group_by: GroupBy,
    currency: CommodityId,
    include_scheduled?: boolean,
-): Promise<Point[]> => {
+): Point[] => {
    const r = toDates(range);
-   return invoke<PointJSON[] | undefined>('networth_history', {
-      mindate: r[0],
-      maxdate: r[1],
-      currency,
-      // include_scheduled: !!include_scheduled,
-      // group_by,
-   }).then(data =>
-      data
-         ? data.map(d => ({
-            date: d.date,
-            networth: d.value,
-            parsedDate: new Date(d.date),
-         }))
-         : [],
-   );
-}
-
-const useNetworthHistory = (
-   range: DateRange,
-   groupBy: GroupBy,
-   currencyId: CommodityId,
-   includeScheduled?: boolean,
-) => {
-   const [data, setData] = React.useState<Point[]>([]);
-   React.useEffect(
-      () => {
-         invokeNWHistory(range, groupBy, currencyId, includeScheduled)
-            .then(d => setData(d));
+   const swr = useInvoke({
+      getCommand: 'networth_history',
+      args: {
+          mindate: r[0],
+          maxdate: r[1],
+          currency,
       },
-      [range, groupBy, currencyId, includeScheduled],
-   );
-   return data;
+      placeholder: noPoints,
+      parse,
+   });
+   return swr.data!;
 }
 
 export interface NetworthHistoryProps {

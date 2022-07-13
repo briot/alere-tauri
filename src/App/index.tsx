@@ -16,6 +16,7 @@ import { PagesProvider } from '@/services/usePages';
 import { PrefProvider } from '@/services/usePrefs';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { TooltipProvider } from '@/Tooltip';
+import { SWRConfig } from 'swr';
 
 import './App.scss';
 import "font-awesome/css/font-awesome.min.css";
@@ -75,17 +76,19 @@ const App: React.FC<{}> = () => {
       <React.StrictMode>
           <BrowserRouter>
              <QueryClientProvider client={queryClient}>
-                <TooltipProvider>
-                   <PrefProvider>
-                      <HistProvider>
-                         <AccountsProvider>
-                            <PagesProvider>
-                               <Main />
-                            </PagesProvider>
-                         </AccountsProvider>
-                      </HistProvider>
-                   </PrefProvider>
-                </TooltipProvider>
+                <SWRConfig value={{ provider: () => new Map() }}>
+                   <TooltipProvider>
+                      <PrefProvider>
+                         <HistProvider>
+                            <AccountsProvider>
+                               <PagesProvider>
+                                  <Main />
+                               </PagesProvider>
+                            </AccountsProvider>
+                         </HistProvider>
+                      </PrefProvider>
+                   </TooltipProvider>
+                </SWRConfig>
             </QueryClientProvider>
           </BrowserRouter>
       </React.StrictMode>

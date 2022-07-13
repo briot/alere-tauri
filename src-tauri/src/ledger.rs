@@ -193,8 +193,9 @@ pub async fn ledger(
                         date: Utc.from_utc_date(&split.timestamp).and_hms(0, 0, 0),
                         balance: 0.0,
                         balance_shares: 0.0,
-                        memo: split.memo.unwrap_or("".to_string()),
-                        check_number: split.check_number.unwrap_or("".to_string()),
+                        memo: split.memo.unwrap_or_else(|| "".to_string()),
+                        check_number: split.check_number
+                            .unwrap_or_else(|| "".to_string()),
                         is_recurring: split.scheduled.unwrap_or(false),
                         splits: vec![],
                     });
@@ -204,7 +205,8 @@ pub async fn ledger(
 
                 if split.account_id == ref_id {
                     r.balance_shares += split.scaled_qty_balance / split.commodity_scu;
-                    r.balance = r.balance_shares * split.computed_price.unwrap_or(std::f32::NAN);
+                    r.balance = r.balance_shares
+                        * split.computed_price.unwrap_or(std::f32::NAN);
                 }
 
                 r.splits.push(SplitDescr {
@@ -215,7 +217,7 @@ pub async fn ledger(
                     reconcile: split.reconcile.chars().next().unwrap(),
                     shares: split.scaled_qty / split.commodity_scu,
                     price: split.computed_price.unwrap_or(std::f32::NAN),
-                    payee: split.payee.unwrap_or("".to_string()),
+                    payee: split.payee.unwrap_or_else(|| "".to_string()),
                 });
             }
             result

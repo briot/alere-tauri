@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { DateRange, toDates } from '@/Dates';
 import { CommodityId } from '@/services/useAccounts';
-import { invoke } from '@tauri-apps/api'
+import useInvoke from '@/services/useInvoke';
 
 export interface Metric {
    income: number;
@@ -29,23 +29,24 @@ const NULL_METRIC: Metric = {
    other_taxes: NaN,
 };
 
-const invokeMetrics = (
-       mindate: Date, maxdate: Date, currency: CommodityId
-): Promise<Metric> => invoke('metrics', {mindate, maxdate, currency})
-
 const usePL = (range: DateRange, currencyId: CommodityId) => {
-   const [metrics, setMetrics] = React.useState(NULL_METRIC);
-
-   React.useEffect(
+   const args = React.useMemo(
       () => {
          const r = toDates(range);
-         invokeMetrics(r[0], r[1], currencyId)
-            .then(resp => setMetrics(resp));
+         return {
+            mindate: r[0],
+            maxdate: r[1],
+            currency: currencyId,
+         };
       },
       [range, currencyId]
    );
-
-   return metrics;
+   const { data } = useInvoke({
+      getCommand: 'metrics',
+      args,
+      placeholder: NULL_METRIC,
+   });
+   return data;
 }
 
 export const usePLMultiple = (
